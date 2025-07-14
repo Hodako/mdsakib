@@ -99,7 +99,7 @@ export default function Home() {
                 <div className="relative glass-card p-8 hover-glow transition-all duration-500">
                   <div className="relative overflow-hidden rounded-2xl">
                     <img
-                      src="https://upload.wikimedia.org/wikipedia/commons/3/3d/Sakib_Shariar.png"
+                      src="https://upload.wikimedia.org/wikipedia/commons/0/07/Md_Sakib.png"
                       alt="MD Sakib - Graphics Designer"
                       className="w-full h-auto object-cover transform hover:scale-105 transition-transform duration-700"
                       style={{ maxHeight: '600px' }}
