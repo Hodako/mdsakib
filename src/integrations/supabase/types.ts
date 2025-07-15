@@ -14,7 +14,186 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin: {
+        Row: {
+          created_at: string | null
+          id: string
+          password_hash: string
+          photo_url: string | null
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          password_hash: string
+          photo_url?: string | null
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          password_hash?: string
+          photo_url?: string | null
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
+      contact_info: {
+        Row: {
+          behance_url: string | null
+          cgpa: string
+          created_at: string | null
+          email: string
+          experience_years: number
+          fiverr_url: string | null
+          id: string
+          location: string
+          phone: string
+          university: string
+          updated_at: string | null
+          upwork_url: string | null
+        }
+        Insert: {
+          behance_url?: string | null
+          cgpa: string
+          created_at?: string | null
+          email: string
+          experience_years: number
+          fiverr_url?: string | null
+          id?: string
+          location: string
+          phone: string
+          university: string
+          updated_at?: string | null
+          upwork_url?: string | null
+        }
+        Update: {
+          behance_url?: string | null
+          cgpa?: string
+          created_at?: string | null
+          email?: string
+          experience_years?: number
+          fiverr_url?: string | null
+          id?: string
+          location?: string
+          phone?: string
+          university?: string
+          updated_at?: string | null
+          upwork_url?: string | null
+        }
+        Relationships: []
+      }
+      contact_messages: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          name: string
+          status: string | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          name: string
+          status?: string | null
+          subject: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          status?: string | null
+          subject?: string
+        }
+        Relationships: []
+      }
+      portfolio: {
+        Row: {
+          blog_content: string | null
+          category: string
+          client: string | null
+          completion_date: string | null
+          created_at: string | null
+          description: string
+          featured: boolean | null
+          id: string
+          image_url: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          blog_content?: string | null
+          category: string
+          client?: string | null
+          completion_date?: string | null
+          created_at?: string | null
+          description: string
+          featured?: boolean | null
+          id?: string
+          image_url: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          blog_content?: string | null
+          category?: string
+          client?: string | null
+          completion_date?: string | null
+          created_at?: string | null
+          description?: string
+          featured?: boolean | null
+          id?: string
+          image_url?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          created_at: string | null
+          delivery_time: string | null
+          description: string
+          features: string[] | null
+          icon: string
+          id: string
+          price_from: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_time?: string | null
+          description: string
+          features?: string[] | null
+          icon: string
+          id?: string
+          price_from?: number | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delivery_time?: string | null
+          description?: string
+          features?: string[] | null
+          icon?: string
+          id?: string
+          price_from?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
