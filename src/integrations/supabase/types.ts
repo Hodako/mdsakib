@@ -46,6 +46,7 @@ export type Database = {
           behance_url: string | null
           cgpa: string
           created_at: string | null
+          cv_url: string | null
           email: string
           experience_years: number
           fiverr_url: string | null
@@ -60,6 +61,7 @@ export type Database = {
           behance_url?: string | null
           cgpa: string
           created_at?: string | null
+          cv_url?: string | null
           email: string
           experience_years: number
           fiverr_url?: string | null
@@ -74,6 +76,7 @@ export type Database = {
           behance_url?: string | null
           cgpa?: string
           created_at?: string | null
+          cv_url?: string | null
           email?: string
           experience_years?: number
           fiverr_url?: string | null
