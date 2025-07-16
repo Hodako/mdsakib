@@ -1,254 +1,183 @@
-import { useState } from "react";
-import { ExternalLink, Eye, Filter } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, Calendar, User, BookOpen } from "lucide-react";
+import { Link } from "react-router-dom";
 
-const categories = ["All", "Branding", "Web Design", "Print", "Social Media", "Packaging"];
-
-const portfolioItems = [
-  {
-    id: 1,
-    title: "TechFlow Brand Identity",
-    category: "Branding",
-    description: "Complete brand identity package for a tech startup including logo, business cards, and brand guidelines.",
-    image: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=600&h=400&fit=crop",
-    tags: ["Logo Design", "Brand Guidelines", "Stationery"],
-    featured: true
-  },
-  {
-    id: 2,
-    title: "EcoLife Website Design",
-    category: "Web Design", 
-    description: "Modern, responsive website design for an environmental organization focused on sustainability.",
-    image: "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=600&h=400&fit=crop",
-    tags: ["UI/UX", "Responsive", "Environmental"],
-    featured: true
-  },
-  {
-    id: 3,
-    title: "Coffee Culture Packaging",
-    category: "Packaging",
-    description: "Premium coffee packaging design that captures the artisanal quality and brand essence.",
-    image: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=600&h=400&fit=crop",
-    tags: ["Package Design", "Coffee", "Premium"],
-    featured: false
-  },
-  {
-    id: 4,
-    title: "Social Campaign Graphics",
-    category: "Social Media",
-    description: "Engaging social media graphics series for a fitness brand's awareness campaign.",
-    image: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=600&h=400&fit=crop",
-    tags: ["Social Media", "Campaign", "Fitness"],
-    featured: false
-  },
-  {
-    id: 5,
-    title: "Annual Report Design",
-    category: "Print",
-    description: "Clean and professional annual report design for a financial services company.",
-    image: "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=600&h=400&fit=crop",
-    tags: ["Print Design", "Corporate", "Annual Report"],
-    featured: true
-  },
-  {
-    id: 6,
-    title: "Restaurant Menu Design",
-    category: "Print",
-    description: "Elegant menu design for a fine dining restaurant with focus on typography and layout.",
-    image: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=400&fit=crop",
-    tags: ["Menu Design", "Restaurant", "Typography"],
-    featured: false
-  },
-  {
-    id: 7,
-    title: "Mobile App Interface",
-    category: "Web Design",
-    description: "User-centered mobile app design for a productivity tool with clean, intuitive interface.",
-    image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&h=400&fit=crop",
-    tags: ["Mobile App", "UI/UX", "Productivity"],
-    featured: false
-  },
-  {
-    id: 8,
-    title: "Fashion Brand Identity",
-    category: "Branding",
-    description: "Sophisticated brand identity for a luxury fashion brand including logo and brand collateral.",
-    image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=400&fit=crop",
-    tags: ["Fashion", "Luxury", "Brand Identity"],
-    featured: true
-  }
-];
+interface PortfolioItem {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  category: string;
+  client: string;
+  completion_date: string;
+  blog_content: string;
+  featured: boolean;
+}
 
 export default function Portfolio() {
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [hoveredItem, setHoveredItem] = useState<number | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
-  const filteredItems = selectedCategory === "All" 
-    ? portfolioItems 
-    : portfolioItems.filter(item => item.category === selectedCategory);
+  useEffect(() => {
+    fetchPortfolio();
+  }, []);
 
-  const featuredItems = portfolioItems.filter(item => item.featured);
+  const fetchPortfolio = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('portfolio')
+        .select('*')
+        .order('featured', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPortfolio(data || []);
+    } catch (error) {
+      console.error('Error fetching portfolio:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const categories = ["All", ...Array.from(new Set(portfolio.map(item => item.category)))];
+  const filteredPortfolio = selectedCategory === "All" 
+    ? portfolio 
+    : portfolio.filter(item => item.category === selectedCategory);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading portfolio...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen pt-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
-        <div className="text-center mb-16 animate-slide-up">
+        <div className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl font-display font-bold text-foreground mb-6">
             My <span className="text-gradient">Portfolio</span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            A showcase of my creative work spanning brand identity, web design, print materials, 
-            and digital graphics. Each project represents a unique solution crafted with passion and precision.
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            Explore my creative journey through a collection of carefully crafted designs
+            that have helped businesses tell their stories and connect with their audiences.
           </p>
         </div>
 
-        {/* Featured Projects */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-display font-bold mb-8 text-center">
-            Featured <span className="text-gradient">Projects</span>
-          </h2>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredItems.map((item, index) => (
-              <Card 
-                key={item.id} 
-                className="glass-card hover-lift group cursor-pointer overflow-hidden"
-                onMouseEnter={() => setHoveredItem(item.id)}
-                onMouseLeave={() => setHoveredItem(null)}
-              >
-                <div className="relative overflow-hidden">
-                  <img 
-                    src={item.image} 
-                    alt={item.title}
-                    className="w-full h-48 object-cover transform group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-overlay opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-center justify-center">
-                    <div className="text-center text-white space-y-2">
-                      <Eye className="w-6 h-6 mx-auto" />
-                      <p className="text-sm font-medium">View Project</p>
-                    </div>
-                  </div>
-                  <Badge className="absolute top-3 right-3 bg-accent text-accent-foreground">
-                    Featured
-                  </Badge>
-                </div>
-                
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
-                    {item.title}
-                  </h3>
-                  <Badge variant="secondary" className="text-xs mb-2">
-                    {item.category}
-                  </Badge>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {item.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Filter Buttons */}
-        <div className="flex flex-wrap justify-center gap-3 mb-12">
+        {/* Category Filter */}
+        <div className="flex flex-wrap justify-center gap-4 mb-12">
           {categories.map((category) => (
             <Button
               key={category}
               variant={selectedCategory === category ? "default" : "outline"}
               onClick={() => setSelectedCategory(category)}
-              className={`transition-all duration-300 ${
-                selectedCategory === category 
-                  ? "gradient-primary shadow-elegant" 
-                  : "hover-lift"
-              }`}
+              className="transition-all duration-300"
             >
-              <Filter className="w-4 h-4 mr-2" />
               {category}
             </Button>
           ))}
         </div>
 
         {/* Portfolio Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredItems.map((item, index) => (
-            <Card 
-              key={item.id}
-              className="glass-card hover-lift group cursor-pointer overflow-hidden animate-fade-in"
-              style={{ animationDelay: `${index * 100}ms` }}
-              onMouseEnter={() => setHoveredItem(item.id)}
-              onMouseLeave={() => setHoveredItem(null)}
-            >
-              <div className="relative overflow-hidden">
-                <img 
-                  src={item.image} 
-                  alt={item.title}
-                  className="w-full h-64 object-cover transform group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-overlay opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-center justify-center">
-                  <div className="text-center text-white space-y-4">
-                    <Eye className="w-8 h-8 mx-auto" />
-                    <p className="font-medium">View Details</p>
-                    <Button size="sm" variant="secondary" className="opacity-90 hover:opacity-100">
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Open
-                    </Button>
-                  </div>
-                </div>
-                {item.featured && (
-                  <Badge className="absolute top-3 right-3 bg-accent text-accent-foreground">
-                    Featured
-                  </Badge>
-                )}
-              </div>
-              
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-xl group-hover:text-primary transition-colors">
-                    {item.title}
-                  </h3>
-                  <Badge variant="outline" className="border-accent/20 text-accent">
-                    {item.category}
-                  </Badge>
-                </div>
-                
-                <p className="text-muted-foreground mb-4 leading-relaxed">
-                  {item.description}
-                </p>
-                
-                <div className="flex flex-wrap gap-2">
-                  {item.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      {tag}
+        {filteredPortfolio.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No portfolio items found.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredPortfolio.map((item) => (
+              <Card key={item.id} className="group glass-card hover-lift overflow-hidden">
+                <div className="relative overflow-hidden">
+                  <img
+                    src={item.image_url}
+                    alt={item.title}
+                    className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  {item.featured && (
+                    <Badge className="absolute top-4 left-4 bg-accent text-accent-foreground">
+                      Featured
                     </Badge>
-                  ))}
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary">{item.category}</Badge>
+                    <div className="flex gap-2">
+                      {item.blog_content && (
+                        <Button size="sm" variant="ghost" asChild>
+                          <Link to={`/portfolio/${item.id}`}>
+                            <BookOpen className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost">
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <CardTitle className="text-xl">{item.title}</CardTitle>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground text-sm">{item.description}</p>
+                  
+                  <div className="space-y-2 text-xs text-muted-foreground">
+                    {item.client && (
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3" />
+                        <span>Client: {item.client}</span>
+                      </div>
+                    )}
+                    {item.completion_date && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3 w-3" />
+                        <span>Completed: {new Date(item.completion_date).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
 
-        {/* CTA Section */}
+                  {item.blog_content && (
+                    <Button asChild size="sm" className="w-full gradient-primary">
+                      <Link to={`/portfolio/${item.id}`}>
+                        Read More
+                      </Link>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Call to Action */}
         <div className="text-center mt-16">
           <Card className="glass-card">
             <CardContent className="p-12">
               <h3 className="text-3xl font-display font-bold mb-4">
-                Like What You See?
+                Ready to Start Your Project?
               </h3>
               <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Ready to create something amazing together? Let's discuss your project 
-                and bring your vision to life with exceptional design.
+                Let's collaborate to bring your vision to life with exceptional design solutions 
+                that make a lasting impact.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" className="gradient-primary hover:shadow-elegant transition-all duration-300">
-                  Start Your Project
-                </Button>
-                <Button size="lg" variant="outline" className="hover-lift">
-                  View More Work
-                </Button>
-              </div>
+              <Button asChild size="lg" className="gradient-primary hover:shadow-elegant transition-all duration-300">
+                <Link to="/contact">
+                  Get In Touch
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         </div>

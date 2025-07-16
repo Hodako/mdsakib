@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Clock, Check } from 'lucide-react';
+import { Mail, Clock, Check, Trash2 } from 'lucide-react';
 
 interface ContactMessage {
   id: string;
@@ -73,6 +74,35 @@ const ContactMessagesTab = () => {
     }
   };
 
+  const deleteMessage = async (messageId: string) => {
+    if (!confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) throw error;
+
+      setMessages(messages.filter(msg => msg.id !== messageId));
+
+      toast({
+        title: "Success",
+        description: "Message deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete message",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center p-8">Loading messages...</div>;
   }
@@ -127,15 +157,26 @@ const ContactMessagesTab = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm mb-4 whitespace-pre-wrap">{message.message}</p>
-                {message.status === 'unread' && (
+                <div className="flex gap-2">
+                  {message.status === 'unread' && (
+                    <Button 
+                      onClick={() => markAsRead(message.id)} 
+                      variant="outline" 
+                      size="sm"
+                    >
+                      Mark as Read
+                    </Button>
+                  )}
                   <Button 
-                    onClick={() => markAsRead(message.id)} 
+                    onClick={() => deleteMessage(message.id)} 
                     variant="outline" 
                     size="sm"
+                    className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
                   >
-                    Mark as Read
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
                   </Button>
-                )}
+                </div>
               </CardContent>
             </Card>
           ))

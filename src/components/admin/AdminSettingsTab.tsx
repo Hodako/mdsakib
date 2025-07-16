@@ -1,30 +1,63 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { Save, Camera, Lock } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import { useAdmin } from '@/contexts/AdminContext';
+import { useToast } from '@/hooks/use-toast';
+import { Upload, User, Lock, FileText } from 'lucide-react';
 
 const AdminSettingsTab = () => {
-  const { adminData } = useAdmin();
-  const [photoUrl, setPhotoUrl] = useState(adminData?.photo_url || '');
+  const [photo, setPhoto] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [cvUrl, setCvUrl] = useState('');
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const handlePhotoUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
+  useEffect(() => {
+    fetchAdminData();
+  }, []);
 
+  const fetchAdminData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin')
+        .select('photo_url')
+        .eq('username', 'sakib')
+        .single();
+
+      if (error) throw error;
+      if (data?.photo_url) {
+        setPhoto(data.photo_url);
+      }
+
+      // Fetch CV URL from contact_info or admin table
+      const { data: contactData } = await supabase
+        .from('contact_info')
+        .select('*')
+        .single();
+
+      if (contactData) {
+        // Assuming we add a cv_url field to contact_info table later
+        setCvUrl(contactData.cv_url || '');
+      }
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+    }
+  };
+
+  const handlePhotoUpdate = async () => {
+    if (!photo) return;
+
+    setLoading(true);
     try {
       const { error } = await supabase
         .from('admin')
-        .update({ photo_url: photoUrl })
+        .update({ photo_url: photo })
         .eq('username', 'sakib');
 
       if (error) throw error;
@@ -41,17 +74,15 @@ const AdminSettingsTab = () => {
         variant: "destructive",
       });
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (currentPassword !== 'sakib69') {
+  const handlePasswordUpdate = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
       toast({
         title: "Error",
-        description: "Current password is incorrect",
+        description: "Please fill in all password fields",
         variant: "destructive",
       });
       return;
@@ -66,140 +97,199 @@ const AdminSettingsTab = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters long",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSaving(true);
-
+    setLoading(true);
     try {
-      // In a real application, you would hash the password
+      // In a real implementation, you would hash the password
       const { error } = await supabase
         .from('admin')
-        .update({ password_hash: newPassword }) // Note: This should be hashed in production
+        .update({ password_hash: newPassword }) // In production, hash this!
         .eq('username', 'sakib');
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Password changed successfully",
+        description: "Password updated successfully",
       });
 
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      console.error('Error changing password:', error);
+      console.error('Error updating password:', error);
       toast({
         title: "Error",
-        description: "Failed to change password",
+        description: "Failed to update password",
         variant: "destructive",
       });
     } finally {
-      setSaving(false);
+      setLoading(false);
+    }
+  };
+
+  const handleCvUpload = async () => {
+    if (!cvFile) return;
+
+    setLoading(true);
+    try {
+      // Create a file name
+      const fileExt = cvFile.name.split('.').pop();
+      const fileName = `cv-${Date.now()}.${fileExt}`;
+
+      // Upload to storage (you would need to create a storage bucket for this)
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, cvFile);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('documents')
+        .getPublicUrl(fileName);
+
+      const publicUrl = urlData.publicUrl;
+
+      // Update contact_info with CV URL
+      const { error: updateError } = await supabase
+        .from('contact_info')
+        .update({ cv_url: publicUrl })
+        .eq('id', (await supabase.from('contact_info').select('id').single()).data?.id);
+
+      if (updateError) throw updateError;
+
+      setCvUrl(publicUrl);
+      setCvFile(null);
+
+      toast({
+        title: "Success",
+        description: "CV uploaded successfully",
+      });
+    } catch (error) {
+      console.error('Error uploading CV:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload CV. Storage bucket may not be configured.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Admin Settings</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Admin Settings</h2>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Camera className="h-5 w-5" />
-            Profile Photo
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handlePhotoUpdate} className="space-y-4">
-            <div>
-              <Label htmlFor="photo_url">Photo URL</Label>
-              <Input
-                id="photo_url"
-                type="url"
-                value={photoUrl}
-                onChange={(e) => setPhotoUrl(e.target.value)}
-                placeholder="https://example.com/your-photo.jpg"
-              />
-            </div>
-            
-            {photoUrl && (
-              <div>
-                <Label>Preview</Label>
-                <img 
-                  src={photoUrl} 
-                  alt="Profile preview" 
-                  className="w-32 h-32 object-cover rounded-full border"
+      <div className="grid gap-6">
+        {/* Profile Photo */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Profile Photo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              {photo && (
+                <img
+                  src={photo}
+                  alt="Admin profile"
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+              )}
+              <div className="flex-1">
+                <Label htmlFor="photo">Photo URL</Label>
+                <Input
+                  id="photo"
+                  type="url"
+                  value={photo}
+                  onChange={(e) => setPhoto(e.target.value)}
+                  placeholder="Enter photo URL"
                 />
               </div>
-            )}
-
-            <Button type="submit" disabled={saving}>
-              <Save className="h-4 w-4 mr-2" />
-              {saving ? 'Saving...' : 'Update Photo'}
+            </div>
+            <Button onClick={handlePhotoUpdate} disabled={loading}>
+              Update Photo
             </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" />
-            Change Password
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handlePasswordChange} className="space-y-4">
+        {/* CV Upload */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              CV Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="current_password">Current Password</Label>
+              <Label htmlFor="cv">Upload CV</Label>
               <Input
-                id="current_password"
+                id="cv"
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => setCvFile(e.target.files?.[0] || null)}
+              />
+            </div>
+            {cvUrl && (
+              <p className="text-sm text-muted-foreground">
+                Current CV: <a href={cvUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View CV</a>
+              </p>
+            )}
+            <Button onClick={handleCvUpload} disabled={loading || !cvFile}>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload CV
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Password Change */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Change Password
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="current-password">Current Password</Label>
+              <Input
+                id="current-password"
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                required
               />
             </div>
-
             <div>
-              <Label htmlFor="new_password">New Password</Label>
+              <Label htmlFor="new-password">New Password</Label>
               <Input
-                id="new_password"
+                id="new-password"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                required
-                minLength={6}
               />
             </div>
-
             <div>
-              <Label htmlFor="confirm_password">Confirm New Password</Label>
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
               <Input
-                id="confirm_password"
+                id="confirm-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                minLength={6}
               />
             </div>
-
-            <Button type="submit" disabled={saving}>
-              <Lock className="h-4 w-4 mr-2" />
-              {saving ? 'Changing...' : 'Change Password'}
+            <Button onClick={handlePasswordUpdate} disabled={loading}>
+              Update Password
             </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

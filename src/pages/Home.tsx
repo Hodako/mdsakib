@@ -1,7 +1,9 @@
+
 import { useEffect, useState } from "react";
 import { ArrowRight, Download, Star, Users, Award, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "react-router-dom";
 
 const statsData = [
   { icon: Users, label: "Happy Clients", value: "150+" },
@@ -53,17 +55,24 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
+                  asChild
                   size="lg" 
                   className="group gradient-primary hover:shadow-elegant transition-all duration-300"
                 >
-                  View Portfolio
-                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  <Link to="/portfolio">
+                    View Portfolio
+                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </Button>
                 
                 <Button 
                   variant="outline" 
                   size="lg"
                   className="group hover-lift"
+                  onClick={() => {
+                    // This will be handled by admin CV upload functionality
+                    window.open('#', '_blank');
+                  }}
                 >
                   <Download className="w-5 h-5 mr-2" />
                   Download CV
@@ -99,7 +108,7 @@ export default function Home() {
                 <div className="relative glass-card p-8 hover-glow transition-all duration-500">
                   <div className="relative overflow-hidden rounded-2xl">
                     <img
-                      src="https://upload.wikimedia.org/wikipedia/commons/0/07/Md_Sakib.png"
+                      src="/lovable-uploads/977eb5c2-1275-42df-9f19-04e2b24ebf80.png"
                       alt="MD Sakib - Graphics Designer"
                       className="w-full h-auto object-cover transform hover:scale-105 transition-transform duration-700"
                       style={{ maxHeight: '600px' }}
@@ -165,9 +174,11 @@ export default function Home() {
                 </Card>
               </div>
 
-              <Button className="group gradient-primary hover:shadow-elegant transition-all duration-300">
-                Learn More About Me
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              <Button asChild className="group gradient-primary hover:shadow-elegant transition-all duration-300">
+                <Link to="/about">
+                  Learn More About Me
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </Button>
             </div>
 
