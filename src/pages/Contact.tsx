@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, Phone, Mail, Clock, Send, MessageSquare, User, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,61 +6,139 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-
-const contactInfo = [
-  {
-    icon: MapPin,
-    title: "Location",
-    details: ["Cumilla, Daudkandi", "Bangladesh"],
-    color: "text-primary"
-  },
-  {
-    icon: Phone,
-    title: "Phone",
-    details: ["+880324324324", "Available 9 AM - 6 PM"],
-    color: "text-accent"
-  },
-  {
-    icon: Mail,
-    title: "Email",
-    details: ["sakib@designer.com", "Response within 24 hours"],
-    color: "text-primary"
-  },
-  {
-    icon: Clock,
-    title: "Working Hours",
-    details: ["Mon - Fri: 9 AM - 6 PM", "Weekend: By appointment"],
-    color: "text-accent"
-  }
-];
-
-const socialLinks = [
-  { name: "Fiverr", url: "#", color: "bg-green-500" },
-  { name: "Upwork", url: "#", color: "bg-green-600" },
-  { name: "Behance", url: "#", color: "bg-blue-500" },
-  { name: "Dribbble", url: "#", color: "bg-pink-500" }
-];
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Contact() {
+  const [contactInfo, setContactInfo] = useState([
+    {
+      icon: MapPin,
+      title: "Location",
+      details: ["Cumilla, Daudkandi", "Bangladesh"],
+      color: "text-primary"
+    },
+    {
+      icon: Phone,
+      title: "Phone",
+      details: ["+880324324324", "Available 9 AM - 6 PM"],
+      color: "text-accent"
+    },
+    {
+      icon: Mail,
+      title: "Email",
+      details: ["sakib@designer.com", "Response within 24 hours"],
+      color: "text-primary"
+    },
+    {
+      icon: Clock,
+      title: "Working Hours",
+      details: ["Mon - Fri: 9 AM - 6 PM", "Weekend: By appointment"],
+      color: "text-accent"
+    }
+  ]);
+
+  const [socialLinks, setSocialLinks] = useState([
+    { name: "Fiverr", url: "#", color: "bg-green-500" },
+    { name: "Upwork", url: "#", color: "bg-green-600" },
+    { name: "Behance", url: "#", color: "bg-blue-500" },
+    { name: "Dribbble", url: "#", color: "bg-pink-500" }
+  ]);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     subject: "",
-    message: "",
-    projectType: ""
+    message: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Message Sent!",
-      description: "Thank you for reaching out. I'll get back to you within 24 hours.",
-    });
-    setFormData({ name: "", email: "", subject: "", message: "", projectType: "" });
+  useEffect(() => {
+    fetchContactInfo();
+  }, []);
+
+  const fetchContactInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('contact_info')
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setContactInfo([
+          {
+            icon: MapPin,
+            title: "Location",
+            details: [data.location, "Bangladesh"],
+            color: "text-primary"
+          },
+          {
+            icon: Phone,
+            title: "Phone",
+            details: [data.phone, "Available 9 AM - 6 PM"],
+            color: "text-accent"
+          },
+          {
+            icon: Mail,
+            title: "Email",
+            details: [data.email, "Response within 24 hours"],
+            color: "text-primary"
+          },
+          {
+            icon: Clock,
+            title: "Working Hours",
+            details: ["Mon - Fri: 9 AM - 6 PM", "Weekend: By appointment"],
+            color: "text-accent"
+          }
+        ]);
+
+        setSocialLinks([
+          { name: "Fiverr", url: data.fiverr_url || "#", color: "bg-green-500" },
+          { name: "Upwork", url: data.upwork_url || "#", color: "bg-green-600" },
+          { name: "Behance", url: data.behance_url || "#", color: "bg-blue-500" }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching contact info:', error);
+    }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert([{
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          status: 'unread'
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for reaching out. I'll get back to you within 24 hours.",
+      });
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
@@ -131,42 +209,20 @@ export default function Contact() {
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="subject" className="flex items-center">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Subject
-                      </Label>
-                      <Input
-                        id="subject"
-                        name="subject"
-                        placeholder="Brief subject of your inquiry"
-                        value={formData.subject}
-                        onChange={handleChange}
-                        required
-                        className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="projectType">Project Type</Label>
-                      <select
-                        id="projectType"
-                        name="projectType"
-                        value={formData.projectType}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-input bg-background rounded-md focus:ring-2 focus:ring-primary/20 transition-all duration-300"
-                        required
-                      >
-                        <option value="">Select project type</option>
-                        <option value="branding">Brand Identity</option>
-                        <option value="web">Web Design</option>
-                        <option value="print">Print Design</option>
-                        <option value="social">Social Media</option>
-                        <option value="packaging">Packaging Design</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="subject" className="flex items-center">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Subject
+                    </Label>
+                    <Input
+                      id="subject"
+                      name="subject"
+                      placeholder="Brief subject of your inquiry"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      required
+                      className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -186,10 +242,11 @@ export default function Contact() {
                   <Button 
                     type="submit" 
                     size="lg" 
+                    disabled={isSubmitting}
                     className="w-full gradient-primary hover:shadow-elegant transition-all duration-300 group"
                   >
                     <Send className="w-5 h-5 mr-2 group-hover:translate-x-1 transition-transform" />
-                    Send Message
+                    {isSubmitting ? "Sending..." : "Send Message"}
                   </Button>
                 </form>
               </CardContent>
@@ -234,7 +291,7 @@ export default function Contact() {
                       className="hover-lift transition-all duration-300"
                       asChild
                     >
-                      <a href={social.url} target="_blank" rel="noopener noreferrer">
+                      <a href={social.url && social.url !== "#" ? social.url : "#"} target="_blank" rel="noopener noreferrer">
                         <div className={`w-3 h-3 rounded-full ${social.color} mr-2`} />
                         {social.name}
                       </a>
